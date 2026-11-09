@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dalli Klick - Das Bilderrätsel Spiel</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220%22%20width=%22100%22%20height=%22100%22><text y=%22.9em%22 font-size=%2290%22>🧩</text></svg>">
+</head>
+<body>
+
+  <!-- Game Header -->
+  <header class="game-header">
+    <div class="logo-container">
+      <div class="logo-badge">DALLI</div>
+      <div class="title-text">KLICK!</div>
+    </div>
+
+    <div class="header-stats">
+      <div class="stat-pill">
+        <span>🎮 Runde:</span>
+        <span id="current-round-display" style="color: #fbbf24;">1</span>
+      </div>
+      <div class="stat-pill">
+        <span>🖼 Bilder:</span>
+        <span id="total-images-display" style="color: #60a5fa;">0</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <button id="btn-sound-toggle" class="btn btn-icon" title="Ton ein-/ausschalten">🔊</button>
+      <button id="btn-fullscreen" class="btn btn-icon" title="Vollbild">⛶</button>
+      <button id="btn-settings" class="btn btn-icon" title="Einstellungen">⚙</button>
+    </div>
+  </header>
+
+  <!-- Main Game Content -->
+  <main class="main-content">
+    <div class="game-arena">
+      
+      <!-- Board Area -->
+      <div class="board-card">
+        <div class="board-container">
+          <img id="board-image" class="board-image" src="" alt="Dalli Bild">
+          <!-- SVG Mosaik Overlay (Memorbild mit unregelmässigen Formen) -->
+          <svg id="board-svg" class="board-svg-overlay" viewBox="0 0 1000 750" preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="tileGrad0" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#38bdf8"/><stop offset="100%" stop-color="#0284c7"/></linearGradient>
+              <linearGradient id="tileGrad1" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f472b6"/><stop offset="100%" stop-color="#db2777"/></linearGradient>
+              <linearGradient id="tileGrad2" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#d97706"/></linearGradient>
+              <linearGradient id="tileGrad3" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#059669"/></linearGradient>
+              <linearGradient id="tileGrad4" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a78bfa"/><stop offset="100%" stop-color="#7c3aed"/></linearGradient>
+              <linearGradient id="tileGrad5" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#fb7185"/><stop offset="100%" stop-color="#e11d48"/></linearGradient>
+              <linearGradient id="tileGrad6" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#2dd4bf"/><stop offset="100%" stop-color="#0d9488"/></linearGradient>
+              <linearGradient id="tileGrad7" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#f59e0b"/><stop offset="100%" stop-color="#b45309"/></linearGradient>
+              <linearGradient id="tileGrad8" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient>
+              <linearGradient id="tileGrad9" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#a3e635"/><stop offset="100%" stop-color="#65a30d"/></linearGradient>
+            </defs>
+            <g id="tiles-layer"></g>
+          </svg>
+          <div id="board-tiles-grid" class="board-tiles-grid" style="display: none;">
+            <!-- Dynamisch generierte Kacheln -->
+          </div>
+          <div id="solution-banner" class="solution-banner">
+            <span class="solution-badge">Gesuchter Begriff</span>
+            <div id="solution-word" class="solution-word">???</div>
+          </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-container">
+          <div id="progress-bar" class="progress-bar"></div>
+        </div>
+
+        <!-- Board Controls -->
+        <div class="board-controls">
+          <div class="control-group">
+            <button id="btn-start" class="btn btn-primary">▶ Start</button>
+            <button id="btn-step" class="btn btn-secondary" title="Nur 1 Kachel aufdecken">➕ 1 Kachel</button>
+            <button id="btn-reveal" class="btn btn-accent">👁 Auflösen</button>
+            <button id="btn-next" class="btn btn-success" style="display: none;">Nächstes Bild ⏭</button>
+          </div>
+
+          <div class="control-group">
+            <label for="speed-selector" style="font-size: 0.9rem; font-weight: 700; color: #94a3b8;">Tempo:</label>
+            <select id="speed-selector" class="speed-selector">
+              <option value="slow">Langsam (1.6s)</option>
+              <option value="medium" selected>Normal (0.9s)</option>
+              <option value="fast">Schnell (0.5s)</option>
+              <option value="turbo">Turbo (0.25s)</option>
+              <option value="manual">Manuell (Klick)</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Compact Players Panel (Platzsparend & übersichtlich) -->
+      <aside class="sidebar-panel">
+        <div class="panel-card player-scores-card">
+          <div class="card-title">
+            <span>👥 Spieler & Punkte</span>
+            <span class="round-badge">Runde <span id="sidebar-round-num">1</span></span>
+          </div>
+
+          <!-- Spieler 1 -->
+          <div class="player-entry player-1-entry">
+            <div class="player-entry-top">
+              <label for="player-1-name-input" class="player-label">
+                <span class="player-dot dot-red"></span> Spieler 1
+              </label>
+              <div class="score-wrapper">
+                <span id="player-1-score" class="player-score-pill">0 Pkt</span>
+                <button id="btn-dec-1" class="btn-score-dec" title="1 Punkt abziehen" tabindex="-1">−</button>
+              </div>
+            </div>
+            <div class="player-entry-input-row">
+              <input type="text" id="player-1-name-input" class="player-name-input" value="Spieler 1" placeholder="Name Spieler 1" maxlength="20" autocomplete="off">
+              <button id="btn-thumb-1" class="btn-thumb btn-thumb-up" title="Spieler 1 hat das Bild richtig erraten! (+3 Punkte)">
+                👍
+              </button>
+              <button id="btn-thumb-down-1" class="btn-thumb btn-thumb-down" title="Spieler 1 lag falsch! (−1 Punkt abziehen)">
+                👎
+              </button>
+            </div>
+          </div>
+
+          <!-- Spieler 2 -->
+          <div class="player-entry player-2-entry">
+            <div class="player-entry-top">
+              <label for="player-2-name-input" class="player-label">
+                <span class="player-dot dot-blue"></span> Spieler 2
+              </label>
+              <div class="score-wrapper">
+                <span id="player-2-score" class="player-score-pill">0 Pkt</span>
+                <button id="btn-dec-2" class="btn-score-dec" title="1 Punkt abziehen" tabindex="-1">−</button>
+              </div>
+            </div>
+            <div class="player-entry-input-row">
+              <input type="text" id="player-2-name-input" class="player-name-input" value="Spieler 2" placeholder="Name Spieler 2" maxlength="20" autocomplete="off">
+              <button id="btn-thumb-2" class="btn-thumb btn-thumb-up" title="Spieler 2 hat das Bild richtig erraten! (+3 Punkte)">
+                👍
+              </button>
+              <button id="btn-thumb-down-2" class="btn-thumb btn-thumb-down" title="Spieler 2 lag falsch! (−1 Punkt abziehen)">
+                👎
+              </button>
+            </div>
+          </div>
+
+          <!-- Score reset & Quick instructions -->
+          <div class="player-card-footer">
+            <button id="btn-reset-scores" class="btn btn-secondary btn-reset" title="Punktestand auf 0 setzen">
+              🔄 Punkte neu starten
+            </button>
+            <div class="game-hint">
+              💡 <strong>Spielregel:</strong> Wer das Bild erkennt, ruft es hinein – klicke auf <strong>👍 (+3 Pkt)</strong> bei richtiger Antwort oder <strong>👎 (−1 Pkt)</strong> bei falscher Antwort!
+            </div>
+          </div>
+        </div>
+      </aside>
+
+    </div>
+  </main>
+
+  <!-- Settings Modal -->
+  <div id="settings-modal" class="modal-overlay">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2 class="modal-title">⚙ Einstellungen</h2>
+        <button id="modal-close-btn" class="btn btn-secondary btn-icon" style="width: 32px; height: 32px;">✖</button>
+      </div>
+
+      <!-- Player Setup Info -->
+      <div class="form-group">
+        <label class="form-label">Mitspieler:</label>
+        <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.4;">
+          Die Namen für <strong>Spieler 1</strong> und <strong>Spieler 2</strong> können jederzeit direkt auf dem Spielfeld eingegeben und geändert werden.
+        </p>
+      </div>
+
+      <!-- Memorbild Shape Style Setup -->
+      <div class="form-group">
+        <label for="shape-style-select" class="form-label">Ausschnitt-Form (Memorbild-Stil):</label>
+        <select id="shape-style-select" class="text-input">
+          <option value="mosaic" selected>🧩 Buntes Mosaik (Vielecke & ungleiche Formen - Memorbild)</option>
+          <option value="triangles">💎 Dreiecks-Facetten (Facetten-Mosaik)</option>
+          <option value="grid">⬜ Klassisches Gitter (Quadrate / Rechtecke)</option>
+        </select>
+      </div>
+
+      <!-- Tile Density / Size Setup -->
+      <div class="form-group">
+        <label for="tile-density-select" class="form-label">Ausschnitt-Größe & Kachelanzahl:</label>
+        <select id="tile-density-select" class="text-input">
+          <option value="small" selected>Klein (42 Teile - Memorbild Standard)</option>
+          <option value="xsmall">Sehr klein (56 Teile - Knifflig)</option>
+          <option value="medium">Mittel (30 Teile - Schneller)</option>
+          <option value="large">Groß (20 Teile - Für jüngere Kinder)</option>
+        </select>
+      </div>
+
+      <!-- Tile Color Theme -->
+      <div class="form-group">
+        <label for="tile-color-select" class="form-label">Farben der Ausschnitte:</label>
+        <select id="tile-color-select" class="text-input">
+          <option value="rainbow" selected>🌈 Bunt & Farbenfroh (Regenbogen)</option>
+          <option value="ocean">🌊 Ozeanblau & Türkis</option>
+          <option value="sunset">🌅 Sonnenuntergang (Gold & Koralle)</option>
+          <option value="classic">🔷 Klassisch Dalli-Blau</option>
+        </select>
+      </div>
+
+      <!-- Speech Output -->
+      <div class="form-group" style="flex-direction: row; align-items: center; justify-content: space-between;">
+        <label for="speech-toggle-input" class="form-label" style="cursor: pointer;">
+          🗣 Lösung laut vorlesen (für Leseanfänger):
+        </label>
+        <input type="checkbox" id="speech-toggle-input" checked style="width: 20px; height: 20px; cursor: pointer;">
+      </div>
+
+      <!-- Custom Folder Import -->
+      <div class="form-group" style="border-top: 1px solid rgba(255,255,255,0.1); padding-top: 14px;">
+        <label class="form-label">Eigene Bilder laden (Ordner oder Dateien):</label>
+        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 8px;">
+          Wähle einen beliebigen Ordner mit Bildern von deinem Computer aus. Der Dateiname (z.B. "Delfin.jpg") wird automatisch als Suchbegriff verwendet.
+        </p>
+        <input type="file" id="folder-upload-input" webkitdirectory directory multiple accept="image/*" class="text-input" style="padding: 6px;">
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 10px;">
+        <button id="btn-save-settings" class="btn btn-primary" style="width: 100%;">Einstellungen speichern & anwenden</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Game Over Modal -->
+  <div id="gameover-modal" class="modal-overlay">
+    <div class="modal-card" style="text-align: center;">
+      <div id="gameover-content">
+        <!-- Siegertreppchen & Highscore -->
+      </div>
+      <button id="btn-restart-game" class="btn btn-success" style="font-size: 1.1rem; padding: 14px;">
+        🔄 Neues Spiel starten
+      </button>
+    </div>
+  </div>
+
+  <!-- Confetti Canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <!-- Notification Toast -->
+  <div id="toast" class="toast">Hinweis</div>
+
+  <!-- Scripts -->
+  <script src="bilder.js"></script>
+  <script src="game.js"></script>
+</body>
+</html>

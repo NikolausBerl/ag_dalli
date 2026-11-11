@@ -80,19 +80,19 @@ Es gibt zwei einfache Wege, das Spiel auf Windows zu starten:
 
 ---
 
-## 📁 Bilderordner erweitern oder verkleinern
+## 📁 Bilderkategorien & Ordnerstruktur
 
-Der Ordner **`bilder/`** enthält standardmäßig **70 kindgerechte, gemeinfreie Bilder**. Du kannst ihn jederzeit nach Belieben anpassen:
+Der Ordner **`bilder/`** dient als übergeordneter Ordner für verschiedene Bilderkategorien. Bilder direkt im Ordner `bilder/` werden nicht mehr verwendet – alle Bilder befinden sich in ihren jeweiligen Kategorie-Unterordnern:
 
-1. **Neues Bild hinzufügen:**
-   - Speichere ein beliebiges Bild (`.jpg`, `.png`, `.webp`) im Ordner `bilder/`.
-   - Benenne die Datei einfach nach dem gesuchten Begriff, z.B. **`Feuerwehrauto.jpg`** oder **`Delfin.png`**.
-2. **Bild entfernen:**
-   - Lösche die Datei einfach aus dem Ordner `bilder/`.
-3. **Aktualisieren:**
-   - Bei Nutzung von `Start-Spiel.bat` werden Änderungen **sofort automatisch** erkannt.
-   - Wenn du `index.html` direkt öffnest: Führe kurz **`bilder_aktualisieren.bat`** per Doppelklick aus, um die Liste abzugleichen.
-   - Alternativ kannst du auch im Spiel über das Zahnrad-Menü **⚙ Einstellungen** einen beliebigen Ordner direkt im Browser auswählen!
+- **`bilder/Familie/`**: 35 kindgerechte Familien-Motive & eigene Familienfotos.
+- **`bilder/Spielzeuge/`**: 50 kindgerechte Spielzeug-Karten (z. B. Memory, Teddybär, Puppe, Bauklötze, Lego, Roller, Zauberwürfel u.v.m.).
+- **`bilder/Verschiedenes/`**: 70 kindgerechte, lizenzfreie Begriffe (Tiere, Fahrzeuge, Obst/Gemüse, Alltag).
+
+### 🏷 Kategorie-Auswahl im Spiel:
+- Direkt in der oberen Leiste (**📂 Kategorie:**) oder im Einstellungsmenü (⚙) kann jederzeit zwischen den Kategorien gewechselt werden.
+- **Automatische Deaktivierung:** Es sind immer nur Kategorien zur Auswahl aktiviert, in deren Ordner sich mindestens ein Bild befindet. Leere Ordner sind inaktiv und ausgegraut.
+- **Start-Kategorie beim Spielstart:** Zu Beginn ist standardmäßig die Kategorie *Verschiedenes* vorausgewählt. Über das Auswahlfeld oben oder in den Einstellungen kann jederzeit auf *Familie* oder *Spielzeuge* gewechselt werden.
+- **Neue Bilder hinzufügen:** Lege einfach Fotos in den entsprechenden Kategorie-Unterordner (z. B. `bilder/Familie/Oma.jpg`). Bei Nutzung von `Start-Spiel.bat` werden neue Bilder sofort beim Neuladen erkannt. Für den Offline-Modus kurz `bilder_aktualisieren.bat` ausführen!
 
 ---
 

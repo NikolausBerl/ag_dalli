@@ -13,7 +13,7 @@
     }
     .header {
       max-width: 1200px;
-      margin: 0 auto 24px;
+      margin: 0 auto 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -35,6 +35,41 @@
       transition: background 0.2s;
     }
     .btn-back:hover { background: #2563eb; }
+    
+    .cat-bar {
+      max-width: 1200px;
+      margin: 0 auto 24px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+    }
+    .cat-btn {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      color: #cbd5e1;
+      padding: 8px 16px;
+      border-radius: 20px;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: all 0.2s;
+    }
+    .cat-btn:hover {
+      background: rgba(255, 255, 255, 0.18);
+      color: white;
+    }
+    .cat-btn.active {
+      background: #f59e0b;
+      color: #0f172a;
+      border-color: #f59e0b;
+      box-shadow: 0 0 12px rgba(245, 158, 11, 0.4);
+    }
+    .cat-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
@@ -73,6 +108,16 @@
       font-size: 1.15rem;
       color: #fef08a;
     }
+    .card .category-badge {
+      display: inline-block;
+      align-self: flex-start;
+      font-size: 0.75rem;
+      font-weight: 700;
+      background: rgba(59, 130, 246, 0.25);
+      color: #93c5fd;
+      padding: 2px 8px;
+      border-radius: 10px;
+    }
     .card .synonyms {
       font-size: 0.8rem;
       color: #94a3b8;
@@ -86,18 +131,30 @@
       font-size: 0.9rem;
       font-weight: 700;
     }
+    .empty-state {
+      grid-column: 1 / -1;
+      text-align: center;
+      padding: 60px 20px;
+      background: #1e293b;
+      border-radius: 12px;
+      border: 2px dashed #475569;
+    }
   </style>
 </head>
 <body>
   <div class="header">
     <div>
-      <h1>Dalli Klick - Alle 70 Bildbegriffe</h1>
-      <p style="color: #94a3b8; margin: 4px 0 0;">Kindgerechte, lizenzfreie Bilder mit erweiterten Synonymen</p>
+      <h1>Dalli Klick - Bildergalerie & Begriffe</h1>
+      <p style="color: #94a3b8; margin: 4px 0 0;">Kindgerechte Bilder nach Kategorien mit erweiterten Begriffen</p>
     </div>
     <div style="display: flex; align-items: center; gap: 12px;">
-      <span id="counter" class="badge-count">70 Bilder</span>
+      <span id="counter" class="badge-count">0 Bilder</span>
       <a href="index.html" class="btn-back">🎮 Zum Spiel</a>
     </div>
+  </div>
+
+  <div id="cat-bar" class="cat-bar">
+    <!-- Kategorie-Filter-Buttons -->
   </div>
 
   <div id="grid" class="grid"></div>
@@ -106,15 +163,88 @@
   <script>
     const grid = document.getElementById('grid');
     const counter = document.getElementById('counter');
-    if (window.BILDER_LISTE) {
-      counter.textContent = `${window.BILDER_LISTE.length} Bilder`;
-      window.BILDER_LISTE.forEach((item, idx) => {
+    const catBar = document.getElementById('cat-bar');
+
+    let allCategories = {};
+    if (window.BILDER_KATEGORIEN) {
+      allCategories = window.BILDER_KATEGORIEN;
+    } else if (window.BILDER_LISTE) {
+      allCategories = { "Verschiedenes": window.BILDER_LISTE };
+    }
+
+    const catIcons = {
+      'Alle': '✨',
+      'Familie': '👨‍👩‍👧',
+      'Spielzeuge': '🧸',
+      'Verschiedenes': '🌟'
+    };
+
+    let currentFilter = 'Alle';
+
+    function renderFilterButtons() {
+      catBar.innerHTML = '';
+
+      // Button für "Alle"
+      const allBtn = document.createElement('button');
+      allBtn.className = `cat-btn ${currentFilter === 'Alle' ? 'active' : ''}`;
+      allBtn.textContent = '✨ Alle';
+      allBtn.addEventListener('click', () => { currentFilter = 'Alle'; renderFilterButtons(); renderGrid(); });
+      catBar.appendChild(allBtn);
+
+      const keys = ['Familie', 'Spielzeuge', 'Verschiedenes', ...Object.keys(allCategories).filter(k => !['Familie', 'Spielzeuge', 'Verschiedenes'].includes(k))];
+
+      keys.forEach(k => {
+        const list = allCategories[k] || [];
+        const count = list.length;
+        const icon = catIcons[k] || '📁';
+        const btn = document.createElement('button');
+        btn.className = `cat-btn ${currentFilter === k ? 'active' : ''}`;
+        btn.textContent = `${icon} ${k}`;
+        if (count === 0) {
+          btn.disabled = true;
+          btn.title = 'Keine Bilder in dieser Kategorie';
+        } else {
+          btn.addEventListener('click', () => { currentFilter = k; renderFilterButtons(); renderGrid(); });
+        }
+        catBar.appendChild(btn);
+      });
+    }
+
+    function renderGrid() {
+      grid.innerHTML = '';
+      let itemsToShow = [];
+
+      if (currentFilter === 'Alle') {
+        Object.keys(allCategories).forEach(cat => {
+          (allCategories[cat] || []).forEach(item => {
+            itemsToShow.push({ ...item, category: cat });
+          });
+        });
+      } else {
+        itemsToShow = (allCategories[currentFilter] || []).map(item => ({ ...item, category: currentFilter }));
+      }
+
+      counter.textContent = `${itemsToShow.length} Bilder`;
+
+      if (itemsToShow.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state">
+            <h2 style="color: #fbbf24; margin-bottom: 8px;">Keine Bilder in Kategorie „${currentFilter}“</h2>
+            <p style="color: #94a3b8;">Kopiere Bilder in den Ordner <code>bilder/${currentFilter}/</code> und aktualisiere die Bilderliste.</p>
+          </div>
+        `;
+        return;
+      }
+
+      itemsToShow.forEach((item, idx) => {
         const card = document.createElement('div');
         card.className = 'card';
         const synList = item.alt && Array.isArray(item.alt) ? item.alt.slice(0, 4).join(', ') : '';
+        const imgSrc = item.file.startsWith('http') ? item.file : (item.file.includes('/') ? `bilder/${item.file}` : `bilder/${item.category}/${item.file}`);
         card.innerHTML = `
-          <img src="bilder/${item.file}" alt="${item.name}" loading="lazy">
+          <img src="${imgSrc}" alt="${item.name}" loading="lazy">
           <div class="card-body">
+            <span class="category-badge">${catIcons[item.category] || '📁'} ${item.category}</span>
             <div class="name">${idx + 1}. ${item.name}</div>
             <div class="synonyms">${synList ? '💡 Auch gültig: ' + synList : ''}</div>
           </div>
@@ -122,6 +252,9 @@
         grid.appendChild(card);
       });
     }
+
+    renderFilterButtons();
+    renderGrid();
   </script>
 </body>
 </html>

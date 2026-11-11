@@ -454,6 +454,14 @@ class DalliGame {
     };
     this.currentSpeed = 'medium';
 
+    // Bilderkategorien (Unterordner in bilder/)
+    this.categories = {
+      'Familie': [],
+      'Spielzeuge': [],
+      'Verschiedenes': []
+    };
+    this.currentCategory = 'Verschiedenes';
+
     this.initDOM();
     this.initEvents();
     this.loadImages();
@@ -476,6 +484,11 @@ class DalliGame {
     this.btnReveal = document.getElementById('btn-reveal');
     this.btnStep = document.getElementById('btn-step');
     this.toastEl = document.getElementById('toast');
+
+    // Kategorie-Elemente
+    this.categorySelect = document.getElementById('category-select');
+    this.modalCategorySelect = document.getElementById('modal-category-select');
+    this.emptyCategoryNotice = document.getElementById('empty-category-notice');
 
     // Spieler 1 & Spieler 2 DOM Elements
     this.player1NameInput = document.getElementById('player-1-name-input');
@@ -642,52 +655,237 @@ class DalliGame {
     folderInput.addEventListener('change', (e) => {
       this.handleCustomFolderUpload(e.target.files);
     });
+
+    // Kategorie-Auswahl Event-Listener
+    if (this.categorySelect) {
+      this.categorySelect.addEventListener('change', (e) => {
+        this.switchCategory(e.target.value);
+      });
+    }
+    if (this.modalCategorySelect) {
+      this.modalCategorySelect.addEventListener('change', (e) => {
+        this.switchCategory(e.target.value);
+      });
+    }
   }
 
   // Lade Bilderliste (Dynamisch vom Server oder statisch von bilder.js)
   async loadImages() {
-    this.showToast('Lade Bilder...');
-    let loaded = false;
+    this.showToast('Lade Bilder & Kategorien...');
+    let loadedCats = null;
 
     // Versuch 1: Dynamischer API-Endpunkt vom PowerShell Server
     try {
       const res = await fetch('/api/bilder');
       if (res.ok) {
         const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          this.images = data;
-          loaded = true;
-          console.log(`Erfolgreich ${data.length} Bilder über Server-API geladen.`);
+        if (data && typeof data === 'object') {
+          if (!Array.isArray(data)) {
+            loadedCats = data;
+            console.log('Kategorien über Server-API geladen:', Object.keys(data));
+          } else {
+            loadedCats = { 'Verschiedenes': data };
+          }
         }
       }
     } catch (err) {
-      console.log('Server-API nicht erreichbar, nutze Fallback.');
+      console.log('Server-API nicht erreichbar, nutze lokale Kategorien.');
     }
 
-    // Versuch 2: Lokale bilder.js Datei
-    if (!loaded && window.BILDER_LISTE && window.BILDER_LISTE.length > 0) {
-      this.images = window.BILDER_LISTE;
-      loaded = true;
-      console.log(`Erfolgreich ${this.images.length} Bilder über bilder.js geladen.`);
+    // Versuch 2: Lokale window.BILDER_KATEGORIEN aus bilder.js
+    if (!loadedCats && window.BILDER_KATEGORIEN) {
+      loadedCats = window.BILDER_KATEGORIEN;
+      console.log('Kategorien über bilder.js geladen:', Object.keys(loadedCats));
     }
 
-    // Falls noch nichts da ist: Standard-Beispielbegriffe
-    if (!loaded || this.images.length === 0) {
-      this.images = [
-        { name: 'Auto', file: 'Auto.jpg', alt: ['pkw', 'wagen'] },
-        { name: 'Katze', file: 'Katze.jpg', alt: ['kater'] },
-        { name: 'Hund', file: 'Hund.jpg', alt: ['welpe'] },
-        { name: 'Elefant', file: 'Elefant.jpg' },
-        { name: 'Apfel', file: 'Apfel.jpg' }
-      ];
+    // Versuch 3: Altes window.BILDER_LISTE Fallback
+    if (!loadedCats && window.BILDER_LISTE && window.BILDER_LISTE.length > 0) {
+      loadedCats = { 'Verschiedenes': window.BILDER_LISTE };
     }
 
-    // Liste mischen für abwechslungsreiches Spiel
-    this.shuffleArray(this.images);
-    this.totalImagesDisplay.textContent = this.images.length;
+    // Fallback: Mindestens die 3 Standard-Kategorien initialisieren
+    if (!loadedCats) {
+      loadedCats = {
+        'Familie': [],
+        'Spielzeuge': [],
+        'Verschiedenes': []
+      };
+    }
+
+    // Sicherstellen, dass die Standard-Kategorien immer existieren
+    const standardCategories = ['Familie', 'Spielzeuge', 'Verschiedenes'];
+    standardCategories.forEach(cat => {
+      if (!loadedCats[cat]) {
+        loadedCats[cat] = [];
+      }
+    });
+
+    this.categories = loadedCats;
+
+    // Spielerliste rendern
     this.renderPlayers();
-    this.setupRound(0);
-    this.showToast(`${this.images.length} Bilder geladen! Spielbereit.`);
+
+    // Dropdown(s) befüllen (nur Kategorien mit Bildern aktivieren)
+    this.populateCategorySelect('Verschiedenes');
+
+    // Zu Beginn Kategorie 'Verschiedenes' auswählen
+    this.switchCategory('Verschiedenes');
+  }
+
+  /**
+   * Dropdown-Menüs für Bilderkategorien befüllen.
+   * Wichtig: Es werden nur Kategorien aktiviert, die auch Bilder enthalten!
+   */
+  populateCategorySelect(selectedCategory = 'Verschiedenes') {
+    const selects = [this.categorySelect, this.modalCategorySelect].filter(Boolean);
+    if (selects.length === 0) return;
+
+    const catIcons = {
+      'Familie': '👨‍👩‍👧',
+      'Spielzeuge': '🧸',
+      'Verschiedenes': '🌟'
+    };
+
+    const standardOrder = ['Familie', 'Spielzeuge', 'Verschiedenes'];
+    const allKeys = Object.keys(this.categories);
+    const orderedCategories = [
+      ...standardOrder.filter(k => allKeys.includes(k)),
+      ...allKeys.filter(k => !standardOrder.includes(k))
+    ];
+
+    selects.forEach(sel => {
+      sel.innerHTML = '';
+      orderedCategories.forEach(cat => {
+        const count = (this.categories[cat] || []).length;
+        const opt = document.createElement('option');
+        opt.value = cat;
+        const icon = catIcons[cat] || '📁';
+        opt.textContent = `${icon} ${cat}`;
+
+        // Nur Kategorien mit vorhandenen Bildern sind aktivierbar!
+        if (count === 0) {
+          opt.disabled = true;
+          opt.title = `Ordner bilder/${cat}/ enthält keine Bilder (deaktiviert)`;
+        } else {
+          opt.disabled = false;
+        }
+
+        if (cat === selectedCategory) {
+          opt.selected = true;
+        }
+        sel.appendChild(opt);
+      });
+      sel.value = selectedCategory;
+    });
+  }
+
+  /**
+   * Kategorie wechseln
+   */
+  switchCategory(categoryName) {
+    if (!this.categories[categoryName]) {
+      categoryName = 'Verschiedenes';
+    }
+    this.currentCategory = categoryName;
+
+    // Dropdown-Werte synchronisieren
+    if (this.categorySelect) this.categorySelect.value = categoryName;
+    if (this.modalCategorySelect) this.modalCategorySelect.value = categoryName;
+
+    if (this.revealInterval) {
+      clearInterval(this.revealInterval);
+      this.revealInterval = null;
+    }
+    this.isPlaying = false;
+    this.isRoundOver = false;
+    this.roundCount = 1;
+
+    const catImages = this.categories[categoryName] || [];
+    this.images = catImages.map(item => Object.assign({}, item));
+    this.totalImagesDisplay.textContent = this.images.length;
+
+    if (this.images.length === 0) {
+      this.showEmptyCategoryState(categoryName);
+      this.showToast(`Kategorie „${categoryName}“ ausgewählt.`);
+    } else {
+      this.hideEmptyCategoryState();
+      this.shuffleArray(this.images);
+      this.setupRound(0);
+      this.showToast(`Kategorie „${categoryName}“ aktiviert!`);
+    }
+  }
+
+  /**
+   * Anzeige für leere Kategorie (z. B. Familie zu Beginn ohne Bilder)
+   */
+  showEmptyCategoryState(categoryName) {
+    if (this.btnStart) this.btnStart.disabled = true;
+    if (this.btnStep) this.btnStep.disabled = true;
+    if (this.btnReveal) this.btnReveal.disabled = true;
+    if (this.btnNext) this.btnNext.style.display = 'none';
+
+    if (this.boardSvg) this.boardSvg.style.display = 'none';
+    if (this.boardImg) {
+      this.boardImg.style.display = 'none';
+      this.boardImg.src = '';
+    }
+    if (this.solutionBanner) this.solutionBanner.classList.remove('show');
+
+    let notice = document.getElementById('empty-category-notice');
+    if (!notice) {
+      notice = document.createElement('div');
+      notice.id = 'empty-category-notice';
+      notice.className = 'empty-category-notice';
+      const boardContainer = document.querySelector('.board-container');
+      if (boardContainer) boardContainer.appendChild(notice);
+    }
+    notice.style.display = 'flex';
+
+    const title = document.getElementById('empty-category-title');
+    if (title) title.textContent = `Kategorie „${categoryName}“ ausgewählt`;
+
+    const desc = document.getElementById('empty-category-desc');
+    if (desc) {
+      desc.innerHTML = `Im Ordner <code>bilder/${categoryName}/</code> befinden sich aktuell noch keine Bilder.<br>Kopiere einfach Fotos in diesen Ordner oder wähle eine aktive Kategorie mit Bildern:`;
+    }
+
+    const btnContainer = document.getElementById('empty-category-buttons');
+    if (btnContainer) {
+      btnContainer.innerHTML = '';
+      const catIcons = {
+        'Familie': '👨‍👩‍👧',
+        'Spielzeuge': '🧸',
+        'Verschiedenes': '🌟'
+      };
+
+      const activeCats = Object.keys(this.categories).filter(c => (this.categories[c] || []).length > 0);
+      activeCats.forEach(c => {
+        const icon = catIcons[c] || '📁';
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'btn btn-primary btn-quick-cat';
+        btn.innerHTML = `${icon} ${c} spielen`;
+        btn.addEventListener('click', () => {
+          this.switchCategory(c);
+        });
+        btnContainer.appendChild(btn);
+      });
+    }
+  }
+
+  /**
+   * Leere Kategorie verbergen und Spielfeld reaktivieren
+   */
+  hideEmptyCategoryState() {
+    const notice = document.getElementById('empty-category-notice');
+    if (notice) notice.style.display = 'none';
+
+    if (this.boardSvg) this.boardSvg.style.display = 'block';
+    if (this.boardImg) this.boardImg.style.display = 'block';
+
+    if (this.btnStart) this.btnStart.disabled = false;
+    if (this.btnStep) this.btnStep.disabled = false;
+    if (this.btnReveal) this.btnReveal.disabled = false;
   }
 
   // Manuelles Laden eigener Bilder über Datei-Auswahl
@@ -704,17 +902,17 @@ class DalliGame {
         newImages.push({
           name: cleanName,
           file: url,
+          category: 'Eigene Auswahl',
           isBlob: true
         });
       }
     }
 
     if (newImages.length > 0) {
-      this.images = newImages;
-      this.shuffleArray(this.images);
-      this.totalImagesDisplay.textContent = this.images.length;
+      this.categories['Eigene Auswahl'] = newImages;
+      this.populateCategorySelect('Eigene Auswahl');
+      this.switchCategory('Eigene Auswahl');
       this.closeSettingsModal();
-      this.setupRound(0);
       this.showToast(`${newImages.length} eigene Bilder erfolgreich importiert!`);
     } else {
       alert('Keine gültigen Bilddateien in der Auswahl gefunden.');
@@ -739,6 +937,11 @@ class DalliGame {
     this.solutionBanner.classList.remove('show');
     this.updateProgressBar();
 
+    if (!this.images || this.images.length === 0) {
+      this.showEmptyCategoryState(this.currentCategory);
+      return;
+    }
+
     if (index >= this.images.length) {
       this.showGameOverModal();
       return;
@@ -748,8 +951,28 @@ class DalliGame {
     const item = this.images[this.currentImageIndex];
     this.currentTerm = item.name;
 
-    // Bildquelle setzen
-    const src = item.isBlob ? item.file : `bilder/${encodeURIComponent(item.file || item.name + '.jpg')}`;
+    // Bildquelle setzen: unterstützt Blob, relative Pfade mit Kategorie
+    let src = '';
+    if (item.isBlob) {
+      src = item.file;
+    } else if (item.file && (item.file.startsWith('http://') || item.file.startsWith('https://'))) {
+      src = item.file;
+    } else {
+      let filePath = item.file || (item.name + '.jpg');
+      if (!filePath.startsWith('bilder/')) {
+        if (!filePath.includes('/')) {
+          const cat = item.category || this.currentCategory || '';
+          filePath = cat ? `${cat}/${filePath}` : filePath;
+        }
+        src = `bilder/${encodeURI(filePath)}`;
+      } else {
+        src = encodeURI(filePath);
+      }
+    }
+
+    this.boardImg.onerror = () => {
+      console.warn(`Bild konnte nicht geladen werden: ${src}`);
+    };
     this.boardImg.src = src;
     this.solutionWord.textContent = item.name;
     this.roundDisplay.textContent = this.roundCount;
@@ -1178,9 +1401,16 @@ class DalliGame {
     const speechToggle = document.getElementById('speech-toggle-input');
     if (speechToggle) this.speechEnabled = speechToggle.checked;
 
+    // Kategorie-Wechsel über Modal prüfen
+    if (this.modalCategorySelect && this.modalCategorySelect.value !== this.currentCategory) {
+      this.switchCategory(this.modalCategorySelect.value);
+    }
+
     this.closeSettingsModal();
-    this.buildTiles();
-    this.showToast('Einstellungen gespeichert & Mosaik aktualisiert!');
+    if (this.images && this.images.length > 0) {
+      this.buildTiles();
+    }
+    this.showToast('Einstellungen gespeichert!');
   }
 
   showGameOverModal() {

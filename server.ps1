@@ -1,4 +1,4 @@
-# PowerShell Mini HTTP-Server für Dalli Klick
+﻿# PowerShell Mini HTTP-Server für Dalli Klick
 # Bietet dynamische Ordnererkennung unter /api/bilder und liefert statische Dateien aus
 
 $port = 8085
@@ -68,12 +68,12 @@ while ($listener.IsListening) {
             $cleanPath = "index.html"
         }
 
-        # API-Endpunkt für dynamische Bilderliste
+        # API-Endpunkt für dynamische Bilderliste nach Kategorien
         if ($cleanPath -eq "api/bilder") {
             $bilderJs = Join-Path $root "bilder.js"
             if (Test-Path $bilderJs) {
                 $rawJs = [System.IO.File]::ReadAllText($bilderJs, [System.Text.Encoding]::UTF8)
-                if ($rawJs -match 'window\.BILDER_LISTE\s*=\s*(\[[\s\S]*?\]);') {
+                if ($rawJs -match 'window\.BILDER_KATEGORIEN\s*=\s*(\{[\s\S]*?\});') {
                     $jsonString = $matches[1]
                     $utf8 = New-Object System.Text.UTF8Encoding($false)
                     $jsonBytes = $utf8.GetBytes($jsonString)
@@ -86,23 +86,37 @@ while ($listener.IsListening) {
                 }
             }
 
-            $files = Get-ChildItem -Path $bilderDir -File -ErrorAction SilentlyContinue | Where-Object {
-                $_.Extension -match '^\.(jpg|jpeg|png|webp|gif)$'
-            }
+            # Fallback: Dynamische Erkennung der Kategorie-Ordner
+            $standardCats = @("Familie", "Spielzeuge", "Verschiedenes")
+            $allSub = Get-ChildItem -Path $bilderDir -Directory -ErrorAction SilentlyContinue | Select-Object -ExpandProperty Name
+            $allCats = @()
+            foreach ($c in $standardCats) { $allCats += $c }
+            foreach ($s in $allSub) { if ($allCats -notcontains $s) { $allCats += $s } }
 
-            $imgList = @()
-            foreach ($f in $files) {
-                $base = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
-                $cleanName = $base -replace '^\d+[\s_-]*', ''
-                $displayName = if ($prettyNames.ContainsKey($cleanName)) { $prettyNames[$cleanName] } else { $cleanName }
-                $imgList += @{
-                    name = $displayName
-                    file = $f.Name
+            $catObj = [ordered]@{}
+            foreach ($c in $allCats) {
+                $cDir = Join-Path $bilderDir $c
+                $imgList = @()
+                if (Test-Path $cDir) {
+                    $cFiles = Get-ChildItem -Path $cDir -File -ErrorAction SilentlyContinue | Where-Object {
+                        $_.Extension -match '^\.(jpg|jpeg|png|webp|gif)$'
+                    }
+                    foreach ($f in $cFiles) {
+                        $base = [System.IO.Path]::GetFileNameWithoutExtension($f.Name)
+                        $cleanName = $base -replace '^\d+[\s_-]*', ''
+                        $displayName = if ($prettyNames.ContainsKey($cleanName)) { $prettyNames[$cleanName] } else { $cleanName }
+                        $imgList += @{
+                            name     = $displayName
+                            file     = "$c/$($f.Name)"
+                            category = $c
+                        }
+                    }
                 }
+                $catObj[$c] = $imgList
             }
 
             $utf8 = New-Object System.Text.UTF8Encoding($false)
-            $jsonString = ($imgList | ConvertTo-Json -Compress)
+            $jsonString = ($catObj | ConvertTo-Json -Depth 5 -Compress)
             $jsonBytes = $utf8.GetBytes($jsonString)
             $response.ContentType = "application/json; charset=utf-8"
             $response.ContentLength64 = $jsonBytes.Length

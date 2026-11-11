@@ -17,6 +17,14 @@
     </div>
 
     <div class="header-stats">
+      <div class="stat-pill category-pill">
+        <label for="category-select" class="category-label">📂 Kategorie:</label>
+        <select id="category-select" class="category-select" title="Bilderkategorie auswählen">
+          <option value="Familie">👨‍👩‍👧 Familie</option>
+          <option value="Spielzeuge">🧸 Spielzeuge</option>
+          <option value="Verschiedenes" selected>🌟 Verschiedenes</option>
+        </select>
+      </div>
       <div class="stat-pill">
         <span>🎮 Runde:</span>
         <span id="current-round-display" style="color: #fbbf24;">1</span>
@@ -64,6 +72,19 @@
           <div id="solution-banner" class="solution-banner">
             <span class="solution-badge">Gesuchter Begriff</span>
             <div id="solution-word" class="solution-word">???</div>
+          </div>
+          <!-- Leere Kategorie Hinweis (wird eingeblendet wenn gewählte Kategorie 0 Bilder hat) -->
+          <div id="empty-category-notice" class="empty-category-notice" style="display: none;">
+            <div class="empty-category-card">
+              <div class="empty-category-icon">📂</div>
+              <h2 id="empty-category-title" class="empty-category-title">Kategorie „Familie“ ausgewählt</h2>
+              <div class="empty-category-badge">0 Bilder im Ordner vorhanden (Kategorie inaktiv)</div>
+              <p id="empty-category-desc" class="empty-category-desc">
+                Im Ordner <code>bilder/Familie/</code> befinden sich aktuell noch keine Bilder.<br>
+                Kopiere einfach Fotos in diesen Ordner oder wähle eine aktive Kategorie mit Bildern:
+              </p>
+              <div id="empty-category-buttons" class="empty-category-buttons"></div>
+            </div>
           </div>
         </div>
 
@@ -174,6 +195,19 @@
         <label class="form-label">Mitspieler:</label>
         <p style="font-size: 0.88rem; color: #cbd5e1; line-height: 1.4;">
           Die Namen für <strong>Spieler 1</strong> und <strong>Spieler 2</strong> können jederzeit direkt auf dem Spielfeld eingegeben und geändert werden.
+        </p>
+      </div>
+
+      <!-- Category Selection in Settings Modal -->
+      <div class="form-group">
+        <label for="modal-category-select" class="form-label">Bilderkategorie auswählen:</label>
+        <select id="modal-category-select" class="text-input">
+          <option value="Familie">👨‍👩‍👧 Familie</option>
+          <option value="Spielzeuge">🧸 Spielzeuge</option>
+          <option value="Verschiedenes" selected>🌟 Verschiedenes</option>
+        </select>
+        <p style="font-size: 0.82rem; color: #94a3b8; margin-top: 4px;">
+          Entspricht den Unterordnern in <code>bilder/</code>. Nur Kategorien mit vorhandenen Bildern sind aktiv.
         </p>
       </div>
 

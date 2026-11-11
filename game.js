@@ -802,7 +802,9 @@ class DalliGame {
 
     const catImages = this.categories[categoryName] || [];
     this.images = catImages.map(item => Object.assign({}, item));
-    this.totalImagesDisplay.textContent = this.images.length;
+    if (this.totalImagesDisplay) {
+      this.totalImagesDisplay.textContent = this.images.length;
+    }
 
     if (this.images.length === 0) {
       this.showEmptyCategoryState(categoryName);
